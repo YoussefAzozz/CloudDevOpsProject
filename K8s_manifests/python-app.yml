@@ -1,0 +1,160 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: python-app
+  namespace: ivolve
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: python-app
+  template:
+    metadata:
+      labels:
+        app: python-app
+    spec:
+      serviceAccountName: secrets-sa
+      tolerations:
+        - key: "workload"
+          operator: "Equal"
+          value: "app"
+          effect: "NoSchedule"
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                - key: workload
+                  operator: In
+                  values:
+                    - app
+      initContainers:
+        - name: init-db
+          image: mariadb:10.5
+          command:
+            - sh
+            - -c
+            - |
+              export MARIADB_ROOT_PASSWORD=$(cat /mnt/secrets-store/MARIADB_ROOT_PASSWORD)
+              export DB_PASSWORD=$(cat /mnt/secrets-store/DB_PASSWORD)
+
+
+              until mysqladmin ping -h "$DB_HOST" --silent; do
+                echo "Waiting for MariaDB to be ready..."
+                sleep 3
+              done
+
+              echo "Creating user and database..."
+              mysql -h "$DB_HOST" -u "root" -p"$MARIADB_ROOT_PASSWORD" <<EOF
+              CREATE USER IF NOT EXISTS '$DB_USER'@'%' IDENTIFIED BY '$DB_PASSWORD';
+              CREATE DATABASE IF NOT EXISTS $DATABASE_NAME;
+              GRANT ALL PRIVILEGES ON $DATABASE_NAME.* TO '$DB_USER'@'%';
+              FLUSH PRIVILEGES;
+              USE $DATABASE_NAME;
+              CREATE TABLE IF NOT EXISTS users (
+              id INT AUTO_INCREMENT PRIMARY KEY,
+              username VARCHAR(255) NOT NULL,
+              email VARCHAR(255) NOT NULL
+              );
+              EOF
+              
+          volumeMounts:
+          - name: secrets-store-inline
+            mountPath: "/mnt/secrets-store"
+            readOnly: true
+
+          env:
+            - name: DB_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: python-config
+                  key: DB_HOST
+            - name: DB_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: python-config
+                  key: DB_USER
+
+            - name: DATABASE_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: python-config
+                  key: DATABASE_NAME
+
+
+
+      containers:
+        - name: python-app
+          image: 242201296834.dkr.ecr.us-east-1.amazonaws.com/python-app:1
+          command:
+            - sh
+            - -c
+            - |
+              export DB_PASSWORD=$(cat /mnt/secrets-store/DB_PASSWORD)
+              exec python app.py
+
+          ports:
+            - containerPort: 5000
+
+          env:
+              #- name: DB_PASSWORD
+              #valueFrom:
+              #secretKeyRef:
+                  #name: python-secret   
+              #key: DB_PASSWORD
+          - name: DB_HOST
+            valueFrom:
+              configMapKeyRef:
+                name: python-config
+                key: DB_HOST
+          - name: DB_USER
+            valueFrom:
+              configMapKeyRef:
+                name: python-config
+                key: DB_USER
+
+          - name: DATABASE_NAME
+            valueFrom:
+              configMapKeyRef:
+                name: python-config
+                key: DATABASE_NAME
+
+
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 5000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 5000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+
+          volumeMounts:
+            - name: secrets-store-inline
+              mountPath: "/mnt/secrets-store"
+              readOnly: true
+
+      volumes:
+        - name: secrets-store-inline
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: "aws-secrets"
+

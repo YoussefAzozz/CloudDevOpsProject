@@ -1,0 +1,28 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: python-app-ingress
+  namespace: ivolve
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing   # Use "internal" for private ALB
+    alb.ingress.kubernetes.io/target-type: ip           # "ip" works with most pod networking models
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'
+    alb.ingress.kubernetes.io/backend-protocol: HTTP
+    alb.ingress.kubernetes.io/healthcheck-path: /healthz
+    alb.ingress.kubernetes.io/security-groups: sg-03a34c78d5bc9bfbb 
+    alb.ingress.kubernetes.io/group.name: "shared-routing"
+      #alb.ingress.kubernetes.io/group.order: "1"
+spec:
+  ingressClassName: alb
+  rules:
+    - host: k8s-sharedrouting-ffe5881db1-1805252111.us-east-1.elb.amazonaws.com  # You must map this in /etc/hosts to the ALB's DNS if testing locally
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: python-app-service
+                port:
+                  number: 5000
+

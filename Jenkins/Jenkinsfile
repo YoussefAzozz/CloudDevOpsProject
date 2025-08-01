@@ -1,0 +1,39 @@
+
+
+@Library('shared_lib_ivolve') _
+
+pipeline {
+  agent { label 'agent-vm-1' }  // Disable default agent to force each stage to pick explicitly
+
+  environment {
+    imageName = 'azoz-python-app'  // Docker image name
+    awsRegion = 'us-east-1'  // Docker image name with build number
+    repoUri = credentials('repo_uri')  // Jenkins credential ID
+  }
+
+  stages {
+
+    stage('Build') {
+      steps {
+        git branch: 'master', url: 'https://github.com/YoussefAzozz/python-ivolve.git'
+        buildApp()
+      }
+    }
+
+    stage('build_scan_PushImage') {
+        // Docker must run on the agent with Docker installed
+      steps {
+        build_scan_Image(imageName, awsRegion, repoUri)
+      }
+    }
+
+    stage('editArgoCDRepo') {
+        // Edit the ArgoCD repository with the new image details
+      steps {
+        editArgoCDRepo()
+      }
+
+  }
+}
+}
+

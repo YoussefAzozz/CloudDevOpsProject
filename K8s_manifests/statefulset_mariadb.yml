@@ -1,0 +1,94 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mariadb
+  namespace: ivolve
+spec:
+  serviceName: mariadb
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mariadb
+  template:
+    metadata:
+      labels:
+        app: mariadb
+    spec:
+      initContainers:
+      - name: init-secret
+        image: busybox
+        command:
+          - sh
+          - -c
+          - |
+            mkdir -p /workdir
+            echo "export MARIADB_ROOT_PASSWORD=$(cat /mnt/secrets-store/MARIADB_ROOT_PASSWORD)" > /workdir/env.sh
+
+        volumeMounts:
+          - name: secrets-store-inline
+            mountPath: /mnt/secrets-store
+            readOnly: true
+          - name: shared-env
+            mountPath: /workdir
+
+      serviceAccountName: secrets-sa
+      tolerations:
+      - key: "workload"
+        operator: "Equal"
+        value: "database"
+        effect: "NoSchedule"
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: workload
+                    operator: In
+                    values:
+                      - database
+      containers:
+        - name: mariadb
+          image: mariadb:10.5
+          command:
+            - sh
+            - -c
+            - |
+              . /workdir/env.sh
+              exec docker-entrypoint.sh mysqld
+          ports:
+            - containerPort: 3306
+              
+          
+          volumeMounts:
+            - name: secrets-store-inline
+              mountPath: "/mnt/secrets-store"
+              readOnly: true
+            - name: mariadb-data
+              mountPath: /var/lib/mysql
+            - name: shared-env
+              mountPath: "/workdir"
+      volumes:
+        - name: secrets-store-inline
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: "aws-secrets"
+
+        - name: mariadb-config
+          configMap:
+            name: python-config
+
+        - name: shared-env
+          emptyDir: {}
+
+  volumeClaimTemplates:
+    - metadata:
+        name: mariadb-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: eks-sc
+        resources:
+          requests:
+            storage: 3Gi
+

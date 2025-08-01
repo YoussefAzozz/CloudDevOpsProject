@@ -1,0 +1,18 @@
+plugin: amazon.aws.aws_ec2
+aws_profile: azoz
+regions:
+  - us-east-1
+filters:
+  instance-state-name: running
+
+keyed_groups:
+  - key: tags.Name
+    prefix: tag_Name
+  - key: tags.Role
+    prefix: tag_Role
+
+hostnames:
+  - tag:Name
+
+compose:
+  ansible_host: public_ip_address  # Use `private_ip_address` if using bastion or private-only network

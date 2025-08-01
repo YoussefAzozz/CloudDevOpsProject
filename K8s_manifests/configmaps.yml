@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: python-config
+  namespace: ivolve
+data:
+  DB_HOST: "mariadb"
+  DB_USER: "azozz"
+  DB_ROOT_USER: "root"
+  DATABASE_NAME: "ivolve"
+

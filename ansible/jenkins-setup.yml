@@ -1,0 +1,109 @@
+- name: Install Jenkins on Controller
+  hosts: tag_Name_jenkins_controller
+  become: yes
+  tasks:
+    - name: Install Java 17
+      apt:
+        name: openjdk-17-jdk
+        update_cache: yes
+
+    - name: Add Jenkins repo key
+      apt_key:
+        url: https://pkg.jenkins.io/debian/jenkins.io.key
+        state: present
+
+    - name: Add Jenkins repository
+      apt_repository:
+        repo: deb https://pkg.jenkins.io/debian-stable binary/
+        state: present
+
+    - name: Install Jenkins
+      apt:
+        name: jenkins
+        update_cache: yes
+        state: present
+
+    - name: Start and enable Jenkins
+      systemd:
+        name: jenkins
+        state: started
+        enabled: yes
+
+- name: Setup Jenkins Agent
+  hosts: tag_Name_jenkins_slave
+  become: yes
+  tasks:
+    - name: Install Java 17
+      apt:
+        name: openjdk-17-jdk
+        update_cache: yes
+
+    - name: Install Docker dependencies
+      user:
+        name: "{{ ansible_user | default('ubuntu') }}"
+        groups: docker
+        append: yes
+
+    - name: Enable and start Docker
+      systemd:
+        name: docker
+        enabled: yes
+        state: started
+
+    - name: Set permissions for Docker socket to 666
+      file:
+        path: /var/run/docker.sock
+        mode: '0666'
+        state: file
+
+    - name: Download AWS CLI v2
+      get_url:
+        url: https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip
+        dest: /tmp/awscliv2.zip
+
+    - name: Install unzip (required by AWS CLI installer)
+      apt:
+        name: unzip
+        state: present
+        update_cache: yes
+
+
+    - name: Unzip AWS CLI installer
+      unarchive:
+        src: /tmp/awscliv2.zip
+        dest: /tmp
+        remote_src: yes
+
+    - name: Run AWS CLI installer
+      unarchive:
+        src: /tmp/awscliv2.zip
+        dest: /tmp
+        remote_src: yes
+
+    - name: Run AWS CLI installer
+      shell: |
+        /tmp/aws/install --update
+      args:
+        creates: /usr/local/bin/aws
+
+    - name: Verify AWS CLI installation
+      shell: aws --version
+      register: aws_version
+      changed_when: false
+
+    - name: Show AWS CLI version
+      debug:
+        msg: "Installed AWS CLI version: {{ aws_version.stdout }}"
+
+    - name: Download AWS CLI v2
+      get_url:
+        url: https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip
+        dest: /tmp/awscliv2.zip
+
+    - name: Install pip3 python-venv (required by AWS CLI installer)
+      apt:
+        name:
+          - python3-pip
+          - python3-venv
+        state: present
+        update_cache: yes
