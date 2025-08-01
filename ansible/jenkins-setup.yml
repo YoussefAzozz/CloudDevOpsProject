@@ -107,3 +107,28 @@
           - python3-venv
         state: present
         update_cache: yes
+
+    - name: Add Aqua Security Trivy APT key
+      apt_key:
+        url: https://aquasecurity.github.io/trivy-repo/deb/public.key
+        state: present
+
+    - name: Add Trivy APT repository
+      apt_repository:
+        repo: deb https://aquasecurity.github.io/trivy-repo/deb stable main
+        state: present
+
+    - name: Install Trivy
+      apt:
+        name: trivy
+        update_cache: yes
+        state: present
+
+    - name: Verify Trivy installation
+      shell: trivy --version
+      register: trivy_version
+      changed_when: false
+
+    - name: Show Trivy version
+      debug:
+        msg: "Installed Trivy version: {{ trivy_version.stdout }}"
