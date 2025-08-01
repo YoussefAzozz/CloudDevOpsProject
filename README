@@ -1,0 +1,87 @@
+Cloud DevOps Final Project – NTI
+
+
+This project demonstrates a complete DevOps workflow from source code to production on AWS using modern CI/CD and Infrastructure as Code practices.
+
+Project Overview
+
+The pipeline automates:
+
+1. Developer pushes code to GitHub
+
+2. Jenkins Pipeline triggers automatically:
+   . Runs tests
+
+   . Builds Docker image
+
+   . Pushes image to Docker Hub
+
+   . Updates Kubernetes manifests
+
+   . Deploys to EKS
+ 
+3. Application is served to the end user via AWS ALB.
+
+Stack Used:
+
+. AWS Services:
+
+    . EKS (Elastic Kubernetes Service)
+    . EC2 (Bastion host & worker nodes)
+    . VPC, Subnets, NAT, IGW
+    . ALB (Ingress)
+    . Security Groups
+    . S3 + DynamoDB (Terraform backend)
+
+. DevOps Tools:
+   
+    . Jenkins (CI/CD)
+    . Terraform (IaC)
+    . Ansible (Configuration Management)
+    . Kubernetes + Kustomize
+    . Docker & ECR(Elastic Container Registry)
+    . ArgoCD (GitOps for CD)
+
+. Monitoring & Logging:
+    
+    . Fluent Bit → CloudWatch
+
+
+Project Structure
+
+	final-project-NTI/
+	│
+	├── Jenkins/                # Jenkins pipeline scripts
+	├── K8s_manifests/          # Kubernetes manifests & kustomize overlays
+	├── ansible/                # Ansible playbooks for EC2/Node configuration
+	├── ivolve-final/           # Application source code
+	└── terraform/              # Terraform IaC for AWS infrastructure
+    	├── backend/            # Terraform remote backend (S3 + DynamoDB)
+    	├── modules/            # Modularized infrastructure (VPC, EKS, EC2)
+    	├── main.tf
+    	├── variables.tf
+    	└── outputs.tf
+
+How the Pipeline Works
+
+1. Push to the GitHub:
+	git add .
+	git commit -m "new feature"
+	git push origin master
+
+2. Jenkins CI/CD:
+	. Triggered by Webhook
+	. Builds & tests code
+ 	. Builds Docker image
+	. Pushes to ECR
+	. Updates Kubernetes manifests via GitOps (ArgoCD)
+
+3. Kubernetes (EKS):
+	. ALB Ingress routes traffic to Python app
+	. / → Application
+	. /argocd → ArgoCD dashboard
+
+
+Deployment Flow:
+
+Developer → GitHub → Jenkins → Docker Hub → ArgoCD → EKS → ALB → User
