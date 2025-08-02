@@ -73,6 +73,13 @@ The architecture of the project consists of the following components:
    - <b>Ansible</b> → For post-deployment configuration management.
    - <b>Jenkins</b> → For application build and deployment automation.
 
+### 📊 Architecture Diagram
+
+<p align="center">
+  <img src="ivolve_final_project_diagram.jpeg" alt="Project Architecture Diagram" width="800"/>
+</p>
+
+
 ---
 
 <h2>⚙️ Tech Stack</h2>
