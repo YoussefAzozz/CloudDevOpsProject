@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>NTI x iVolve Graduation Project</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="content">
+            <h1 class="title">DevOps Graduation Project</h1>
+            <h2 class="subtitle">In Collaboration with iVolve Technologies</h2>
+            <div class="logos">
+                <img src="{{ url_for('static', filename='logos/nti-logo.png') }}" alt="NTI Logo" class="logo nti">
+                <img src="{{ url_for('static', filename='logos/ivolve-logo.png') }}" alt="iVolve Logo" class="logo ivolve">
+            </div>
+            <p class="description">
+                This project represents the culmination of the DevOps training track at the National Telecommunication Institute (NTI), in partnership with iVolve Technologies.
+            </p>
+
+            <!-- 👇 User Form -->
+            <h3>Add User</h3>
+            <form method="POST" action="/">
+                <input type="text" name="username" placeholder="Username" required>
+                <input type="email" name="email" placeholder="Email" required>
+                <button type="submit">Add</button>
+            </form>
+
+            <!-- 👇 View Users Button -->
+            <form method="GET" action="/users">
+                <button type="submit">List All Users</button>
+            </form>
+
+            <!-- 👇 Users List -->
+            {% if data %}
+                <h3>All Users</h3>
+                <ul>
+                    {% for user in data %}
+                        <li>{{ user[0] }} - {{ user[1] }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </div>
+
+        <footer>
+            © 2025 NTI DevOps Track & iVolve Technologies
+        </footer>
+    </div>
+</body>
+</html>
+
