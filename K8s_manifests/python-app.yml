@@ -97,11 +97,6 @@ spec:
             - containerPort: 5000
 
           env:
-              #- name: DB_PASSWORD
-              #valueFrom:
-              #secretKeyRef:
-                  #name: python-secret   
-              #key: DB_PASSWORD
           - name: DB_HOST
             valueFrom:
               configMapKeyRef:
